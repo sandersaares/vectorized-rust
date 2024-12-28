@@ -13,7 +13,7 @@ pub fn solve<const CHUNK_SIZE: usize>(
 where
     LaneCount<CHUNK_SIZE>: SupportedLaneCount,
 {
-    // Create vectors for our constants, which we will reuse for each chunk.
+    // Create vectors for our constants.
     let x_a_vec = Simd::splat(x_a as f64);
     let x_b_vec = Simd::splat(x_b as f64);
     let x_vec = Simd::splat(x as f64);
@@ -49,6 +49,8 @@ where
                 .position(|&x| x)
                 .expect("we verified that at least one element is true")];
 
+            // Use the naive algorithm to find the exact solution.
+            // The fast algorithm just gets us a boolean that our solution was found.
             return Some(
                 evaluate_naive(a as u64, x_a, x_b, x, y_a, y_b, y)
                     .expect("we verified that this is a valid solution"),
