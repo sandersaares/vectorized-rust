@@ -27,6 +27,11 @@ where
     // We iterate over candidate values of A in chunks of CHUNK_SIZE.
     // There is no guarantee that max A is a multiple of the chunk size
     // so we separately process any remainder below with the naive algorithm.
+    //
+    // (Yes, this is overly complicated because our input data is an infinite sequence
+    // and we could simply filter out any out-of-bounds values after the fact but in a more
+    // realistic usage of vectorized code we typically would have a finite input sequence
+    // so for the sake of maximally realistic example code, we do this the "proper" way here).
     let mut chunk_iterator = (0..=max_a).map(|x| x as f64).array_chunks::<CHUNK_SIZE>();
 
     for full_chunk in chunk_iterator.by_ref() {
