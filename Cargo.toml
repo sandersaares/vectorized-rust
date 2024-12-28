@@ -1,0 +1,16 @@
+[package]
+name = "vectorized-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+criterion = "0"
+num = "0.4.3"
+
+[[bench]]
+name = "benches"
+harness = false
+
+[profile.release]
+debug = "full"
+panic = "abort"
