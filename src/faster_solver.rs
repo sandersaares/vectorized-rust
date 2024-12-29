@@ -21,24 +21,31 @@ where
     let y_b_vec = Simd::splat(y_b as f64);
     let y_vec = Simd::splat(y as f64);
 
+    // This is a vector with the offsets used to go from the first
+    // candidate (splatted) to all the candidates in a chunk.
+    let mut candidate_offsets = Simd::splat(0.0);
+    for lane_index in 0..CHUNK_SIZE {
+        candidate_offsets[lane_index] = lane_index as f64;
+    }
+
     // Identify max possible value of A, to stop loop if no solution found.
     let max_a = (x / x_a).min(y / y_a);
 
     // We iterate over candidate values of A in chunks of CHUNK_SIZE.
     // There is no guarantee that max A is a multiple of the chunk size
     // so once we calculate a result we check whether it actually falls in bounds.
-    for first_candidate_in_chunk in (0..=max_a).step_by(CHUNK_SIZE) {
-        let mut a_candidates = Simd::<f64, CHUNK_SIZE>::splat(0.0);
+    // In other words, the last chunk may be partially out of bounds.
+    //
+    // This is OK in our case because we have a purely mathematical infinite input
+    // sequence. If operating on real data, one would typically round down to the nearest
+    // chunk boundary here and process any remainder with a naive algorithm (i.e. using
+    // array_chunks() + into_remainder() instead of step_by()).
+    let chunk_count = max_a.div_ceil(CHUNK_SIZE as u64);
 
-        for lane_index in 0..CHUNK_SIZE {
-            // Note that this can yield candidate values for A that are out of bounds (above max_a).
-            // This is OK in this case because we have a purely mathematical infinite input
-            // sequence. If operating on real data, one would typically round down to the nearest
-            // chunk boundary here and process any remainder with a naive algorithm (i.e. using
-            // array_chunks() + into_remainder() instead of step_by()).
-            let candidate = first_candidate_in_chunk + lane_index as u64;
-            a_candidates[lane_index] = candidate as f64;
-        }
+    for chunk_index in 0..chunk_count {
+        let first_candidate_in_chunk = chunk_index * CHUNK_SIZE as u64;
+        let a_candidates =
+            Simd::<f64, CHUNK_SIZE>::splat(first_candidate_in_chunk as f64) + candidate_offsets;
 
         let result = evaluate_chunk(
             a_candidates,
