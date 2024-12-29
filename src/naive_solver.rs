@@ -26,7 +26,6 @@ pub(crate) fn evaluate_naive(
 ) -> Option<Solution> {
     // If we have this A, what is the expected value of Xb * B?
     let remaining_x = x - x_a * a_candidate;
-    let remaining_y = y - y_a * a_candidate;
 
     let (b_x, remainder_x) = remaining_x.div_rem(&x_b);
 
@@ -34,6 +33,8 @@ pub(crate) fn evaluate_naive(
     if remainder_x != 0 {
         return None;
     }
+
+    let remaining_y = y - y_a * a_candidate;
 
     let (b_y, remainder_y) = remaining_y.div_rem(&y_b);
 
