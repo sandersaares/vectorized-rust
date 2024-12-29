@@ -26,16 +26,19 @@ where
 
     // We iterate over candidate values of A in chunks of CHUNK_SIZE.
     // There is no guarantee that max A is a multiple of the chunk size
-    // so we separately process any remainder below with the naive algorithm.
-    //
-    // (Yes, this is overly complicated because our input data is an infinite sequence
-    // and we could simply filter out any out-of-bounds values after the fact but in a more
-    // realistic usage of vectorized code we typically would have a finite input sequence
-    // so for the sake of maximally realistic example code, we do this the "proper" way here).
-    let mut chunk_iterator = (0..=max_a).map(|x| x as f64).array_chunks::<CHUNK_SIZE>();
+    // so once we calculate a result we check whether it actually falls in bounds.
+    for first_candidate_in_chunk in (0..=max_a).step_by(CHUNK_SIZE) {
+        let mut a_candidates = Simd::<f64, CHUNK_SIZE>::splat(0.0);
 
-    for full_chunk in chunk_iterator.by_ref() {
-        let a_candidates = Simd::from_array(full_chunk);
+        for lane_index in 0..CHUNK_SIZE {
+            // Note that this can yield candidate values for A that are out of bounds (above max_a).
+            // This is OK in this case because we have a purely mathematical infinite input
+            // sequence. If operating on real data, one would typically round down to the nearest
+            // chunk boundary here and process any remainder with a naive algorithm (i.e. using
+            // array_chunks() + into_remainder() instead of step_by()).
+            let candidate = first_candidate_in_chunk + lane_index as u64;
+            a_candidates[lane_index] = candidate as f64;
+        }
 
         let result = evaluate_chunk(
             a_candidates,
@@ -54,22 +57,17 @@ where
                 .position(|&x| x)
                 .expect("we verified that at least one element is true")];
 
+            if a as u64 > max_a {
+                // We went out of bounds - this is not a valid solution.
+                return None;
+            }
+
             // Use the naive algorithm to find the exact solution.
             // The fast algorithm just gets us a boolean that our solution was found.
             return Some(
                 evaluate_naive(a as u64, x_a, x_b, x, y_a, y_b, y)
                     .expect("we verified that this is a valid solution"),
             );
-        }
-    }
-
-    // We have some remainder that is smaller than our chunk size.
-    // For this part we fall back to the slower naive evaluation.
-    if let Some(partial_chunk_iterator) = chunk_iterator.into_remainder() {
-        for a in partial_chunk_iterator {
-            if let Some(solution) = evaluate_naive(a as u64, x_a, x_b, x, y_a, y_b, y) {
-                return Some(solution);
-            }
         }
     }
 
