@@ -42,9 +42,6 @@ where
     // input but that is not realistic because real world inputs are typically finite.)
     let full_chunk_count = max_a / CHUNK_SIZE as u64;
 
-    // Values for A that fall into the final partial chunk. May be an empty range.
-    let partial_chunk_candidates = (CHUNK_SIZE as u64 * full_chunk_count)..=max_a;
-
     for chunk_index in 0..full_chunk_count {
         let first_candidate_in_chunk = chunk_index * CHUNK_SIZE as u64;
 
@@ -82,15 +79,12 @@ where
         }
     }
 
+    // Values for A that fall into the final partial chunk. May be an empty range.
+    let mut partial_chunk_candidates = (CHUNK_SIZE as u64 * full_chunk_count)..=max_a;
+
     // If there was any part of the sequence that didn't fit into a full chunk,
     // we process it with the naive algorithm.
-    for a in partial_chunk_candidates {
-        if let Some(solution) = evaluate_naive(a, x_a, x_b, x, y_a, y_b, y) {
-            return Some(solution);
-        }
-    }
-
-    None
+    partial_chunk_candidates.find_map(|a| evaluate_naive(a, x_a, x_b, x, y_a, y_b, y))
 }
 
 // Evaluates whether a chunk of candidate values for A are valid solutions,
