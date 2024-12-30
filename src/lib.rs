@@ -1,8 +1,7 @@
 #![feature(portable_simd)]
-#![feature(iter_array_chunks)]
-#![allow(dead_code, unused_variables)]
 
 pub mod faster_solver;
+pub mod faster_solver_u64;
 pub mod naive_solver;
 
 #[derive(Debug, PartialEq, Eq)]

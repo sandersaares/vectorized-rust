@@ -15,18 +15,18 @@ where
 {
     // We will prepare vector versions of our constants
     // as vector operations require vectors for input.
-    let x_a_vec = Simd::splat(x_a as f64);
-    let x_b_vec = Simd::splat(x_b as f64);
-    let x_vec = Simd::splat(x as f64);
-    let y_a_vec = Simd::splat(y_a as f64);
-    let y_b_vec = Simd::splat(y_b as f64);
-    let y_vec = Simd::splat(y as f64);
+    let x_a_vec = Simd::splat(x_a);
+    let x_b_vec = Simd::splat(x_b);
+    let x_vec = Simd::splat(x);
+    let y_a_vec = Simd::splat(y_a);
+    let y_b_vec = Simd::splat(y_b);
+    let y_vec = Simd::splat(y);
 
     // This is a vector with the offsets used to go from a vector with the first
     // candidate A (splatted to all lanes) to all the candidates in a chunk.
-    let mut candidate_offsets = Simd::splat(0.0);
+    let mut candidate_offsets = Simd::splat(0);
     for lane_index in 0..CHUNK_SIZE {
-        candidate_offsets[lane_index] = lane_index as f64;
+        candidate_offsets[lane_index] = lane_index as u64;
     }
 
     // Identify max possible value of A, to stop loop if no solution found.
@@ -51,7 +51,7 @@ where
         // This gives us a vector with all the candidate A values in this chunk.
         // e.g. [0, 1, 2, 3] for the first chunk.
         let a_candidates =
-            Simd::<_, CHUNK_SIZE>::splat(first_candidate_in_chunk as f64) + candidate_offsets;
+            Simd::<_, CHUNK_SIZE>::splat(first_candidate_in_chunk) + candidate_offsets;
 
         let result = evaluate_chunk(
             a_candidates,
@@ -96,13 +96,13 @@ where
 // Evaluates whether a chunk of candidate values for A are valid solutions,
 // with a nonzero value in the output vector indicating a valid solution.
 fn evaluate_chunk<const CHUNK_SIZE: usize>(
-    a_candidates: Simd<f64, CHUNK_SIZE>,
-    x_a: Simd<f64, CHUNK_SIZE>,
-    x_b: Simd<f64, CHUNK_SIZE>,
-    x: Simd<f64, CHUNK_SIZE>,
-    y_a: Simd<f64, CHUNK_SIZE>,
-    y_b: Simd<f64, CHUNK_SIZE>,
-    y: Simd<f64, CHUNK_SIZE>,
+    a_candidates: Simd<u64, CHUNK_SIZE>,
+    x_a: Simd<u64, CHUNK_SIZE>,
+    x_b: Simd<u64, CHUNK_SIZE>,
+    x: Simd<u64, CHUNK_SIZE>,
+    y_a: Simd<u64, CHUNK_SIZE>,
+    y_b: Simd<u64, CHUNK_SIZE>,
+    y: Simd<u64, CHUNK_SIZE>,
 ) -> Mask<i64, CHUNK_SIZE>
 where
     LaneCount<CHUNK_SIZE>: SupportedLaneCount,
@@ -150,13 +150,13 @@ mod tests {
 
     #[test]
     fn smoke_test_evaluate_chunk() {
-        let a_candidates = Simd::from_array([79.0, 80.0, 81.0, 82.0]);
-        let x_a = Simd::splat(94.0);
-        let x_b = Simd::splat(22.0);
-        let x = Simd::splat(8400.0);
-        let y_a = Simd::splat(34.0);
-        let y_b = Simd::splat(67.0);
-        let y = Simd::splat(5400.0);
+        let a_candidates = Simd::from_array([79, 80, 81, 82]);
+        let x_a = Simd::splat(94);
+        let x_b = Simd::splat(22);
+        let x = Simd::splat(8400);
+        let y_a = Simd::splat(34);
+        let y_b = Simd::splat(67);
+        let y = Simd::splat(5400);
 
         let result = evaluate_chunk(a_candidates, x_a, x_b, x, y_a, y_b, y);
 

@@ -35,6 +35,12 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         });
     });
 
+    c.bench_function("faster_4_u64", |b| {
+        b.iter(|| {
+            _ = black_box(faster_solver_u64::solve::<4>(X_A, X_B, X, Y_A, Y_B, Y));
+        });
+    });
+
     c.bench_function("faster_8", |b| {
         b.iter(|| {
             _ = black_box(faster_solver::solve::<8>(X_A, X_B, X, Y_A, Y_B, Y));
