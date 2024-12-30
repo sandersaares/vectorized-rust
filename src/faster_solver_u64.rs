@@ -94,7 +94,7 @@ where
 }
 
 // Evaluates whether a chunk of candidate values for A are valid solutions,
-// with a nonzero value in the output vector indicating a valid solution.
+// with a masked value in the output vector indicating a valid solution.
 fn evaluate_chunk<const CHUNK_SIZE: usize>(
     a_candidates: Simd<u64, CHUNK_SIZE>,
     x_a: Simd<u64, CHUNK_SIZE>,
