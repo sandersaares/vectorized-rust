@@ -4,13 +4,7 @@ pub fn solve(x_a: u64, x_b: u64, x: u64, y_a: u64, y_b: u64, y: u64) -> Option<S
     // Identify max possible value of A, to stop loop if no solution found.
     let max_a = (x / x_a).min(y / y_a);
 
-    for a in 0..=max_a {
-        if let Some(solution) = evaluate_naive(a, x_a, x_b, x, y_a, y_b, y) {
-            return Some(solution);
-        }
-    }
-
-    None
+    (0..=max_a).find_map(|a| evaluate_naive(a, x_a, x_b, x, y_a, y_b, y))
 }
 
 pub(crate) fn evaluate_naive(
