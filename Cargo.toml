@@ -3,9 +3,8 @@ name = "vectorized-rust"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
+[dev-dependencies]
 criterion = "0"
-num = "0.4.3"
 
 [[bench]]
 name = "benches"

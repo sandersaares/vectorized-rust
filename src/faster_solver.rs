@@ -13,7 +13,8 @@ pub fn solve<const CHUNK_SIZE: usize>(
 where
     LaneCount<CHUNK_SIZE>: SupportedLaneCount,
 {
-    // Create vectors for our constants.
+    // We will prepare vector versions of our constants
+    // as vector operations require vectors for input.
     let x_a_vec = Simd::splat(x_a as f64);
     let x_b_vec = Simd::splat(x_b as f64);
     let x_vec = Simd::splat(x as f64);
@@ -21,8 +22,8 @@ where
     let y_b_vec = Simd::splat(y_b as f64);
     let y_vec = Simd::splat(y as f64);
 
-    // This is a vector with the offsets used to go from the first
-    // candidate (splatted) to all the candidates in a chunk.
+    // This is a vector with the offsets used to go from a vector with the first
+    // candidate A (splatted to all lanes) to all the candidates in a chunk.
     let mut candidate_offsets = Simd::splat(0.0);
     for lane_index in 0..CHUNK_SIZE {
         candidate_offsets[lane_index] = lane_index as f64;
@@ -32,18 +33,23 @@ where
     let max_a = (x / x_a).min(y / y_a);
 
     // We iterate over candidate values of A in chunks of CHUNK_SIZE.
-    // There is no guarantee that max A is a multiple of the chunk size
-    // so once we calculate a result we check whether it actually falls in bounds.
-    // In other words, the last chunk may be partially out of bounds.
+    // There is no guarantee that max A is a multiple of the chunk size!
     //
-    // This is OK in our case because we have a purely mathematical infinite input
-    // sequence. If operating on real data, one would typically round down to the nearest
-    // chunk boundary here and process any remainder with a naive algorithm (i.e. using
-    // array_chunks() + into_remainder() instead of step_by()).
-    let chunk_count = max_a.div_ceil(CHUNK_SIZE as u64);
+    // For optimal example realism here, we process "full" chunks with the vectorized
+    // algorithm and fall back to the naive algorithm for processing any remainder.
+    //
+    // (We could simplify this code because we have an infinite mathematical sequence as
+    // input but that is not realistic because real world inputs are typically finite.)
+    let full_chunk_count = max_a / CHUNK_SIZE as u64;
 
-    for chunk_index in 0..chunk_count {
+    // Values for A that fall into the final partial chunk. May be an empty range.
+    let partial_chunk_candidates = (CHUNK_SIZE as u64 * full_chunk_count)..=max_a;
+
+    for chunk_index in 0..full_chunk_count {
         let first_candidate_in_chunk = chunk_index * CHUNK_SIZE as u64;
+
+        // This gives us a vector with all the candidate A values in this chunk.
+        // e.g. [0, 1, 2, 3] for the first chunk.
         let a_candidates =
             Simd::<f64, CHUNK_SIZE>::splat(first_candidate_in_chunk as f64) + candidate_offsets;
 
@@ -57,24 +63,30 @@ where
             y_vec,
         );
 
+        // We get booleans as output of the evaluation, answering "is this A a valid solution".
+        // Notably, the evaluation result does not give the actual numeric value for B.
+        // Therefore, if we found a valid solution, we still need to calculate B,
+        // which we do by falling back to the naive algorithm.
         if result.any() {
-            let a = a_candidates.as_array()[result
+            let solution_index = result
                 .to_array()
                 .iter()
                 .position(|&x| x)
-                .expect("we verified that at least one element is true")];
+                .expect("we verified that at least one element is true");
+            let a = a_candidates.as_array()[solution_index];
 
-            if a as u64 > max_a {
-                // We went out of bounds - this is not a valid solution.
-                return None;
-            }
-
-            // Use the naive algorithm to find the exact solution.
-            // The fast algorithm just gets us a boolean that our solution was found.
             return Some(
                 evaluate_naive(a as u64, x_a, x_b, x, y_a, y_b, y)
                     .expect("we verified that this is a valid solution"),
             );
+        }
+    }
+
+    // If there was any part of the sequence that didn't fit into a full chunk,
+    // we process it with the naive algorithm.
+    for a in partial_chunk_candidates {
+        if let Some(solution) = evaluate_naive(a, x_a, x_b, x, y_a, y_b, y) {
+            return Some(solution);
         }
     }
 
@@ -95,24 +107,24 @@ fn evaluate_chunk<const CHUNK_SIZE: usize>(
 where
     LaneCount<CHUNK_SIZE>: SupportedLaneCount,
 {
-    // If we have this A, what is the expected value of Xb * B?
-    let remaining_x = x - x_a * a_candidates;
+    // If we assume the given A, what is the expected value of Xb * B?
+    let b_component_x = x - x_a * a_candidates;
 
     // Probe what a matching value for B might be for our current A.
-    let b_x = remaining_x / x_b;
+    let b_x = b_component_x / x_b;
 
     // If not evenly divisible to yield a B, there is no solution with this A.
-    let is_evenly_divisible_x = (b_x * x_b).simd_eq(remaining_x);
+    let is_evenly_divisible_x = (b_x * x_b).simd_eq(b_component_x);
 
     // Do the same for Y.
-    let remaining_y = y - y_a * a_candidates;
-    let b_y = remaining_y / y_b;
-    let is_evenly_divisible_y = (b_y * y_b).simd_eq(remaining_y);
+    let b_component_y = y - y_a * a_candidates;
+    let b_y = b_component_y / y_b;
+    let is_evenly_divisible_y = (b_y * y_b).simd_eq(b_component_y);
 
     // Both the X and Y equations must yield the same value for B.
     let is_equal_x_y = b_x.simd_eq(b_y);
 
-    // Combine all the conditions to yield a valid solution.
+    // Combine all the conditions to yield an "is valid solution" boolean.
     is_evenly_divisible_x & is_evenly_divisible_y & is_equal_x_y
 }
 

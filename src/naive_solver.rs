@@ -1,5 +1,3 @@
-use num::Integer;
-
 use crate::Solution;
 
 pub fn solve(x_a: u64, x_b: u64, x: u64, y_a: u64, y_b: u64, y: u64) -> Option<Solution> {
@@ -24,26 +22,25 @@ pub(crate) fn evaluate_naive(
     y_b: u64,
     y: u64,
 ) -> Option<Solution> {
-    // If we have this A, what is the expected value of Xb * B?
-    let remaining_x = x - x_a * a_candidate;
-
-    let (b_x, remainder_x) = remaining_x.div_rem(&x_b);
+    // If we assume the given A, what is the expected value of Xb * B?
+    let b_component_x = x - x_a * a_candidate;
 
     // If not evenly divisible, there is no solution with this A.
-    if remainder_x != 0 {
+    if b_component_x % x_b != 0 {
         return None;
     }
 
-    let remaining_y = y - y_a * a_candidate;
-
-    let (b_y, remainder_y) = remaining_y.div_rem(&y_b);
+    let b_component_y = y - y_a * a_candidate;
 
     // If not evenly divisible, there is no solution with this A.
-    if remainder_y != 0 {
+    if b_component_y % y_b != 0 {
         return None;
     }
 
-    // If value for B does not match, there is no solution with this A.
+    let b_x = b_component_x / x_b;
+    let b_y = b_component_y / y_b;
+
+    // If values for B do not match, there is no solution with this A.
     if b_x != b_y {
         return None;
     }
