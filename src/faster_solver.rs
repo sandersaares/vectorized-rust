@@ -1,4 +1,4 @@
-use std::simd::{cmp::SimdPartialEq, LaneCount, Mask, Simd, SupportedLaneCount};
+use std::simd::{cmp::SimdPartialEq, LaneCount, Mask, Simd, StdFloat, SupportedLaneCount};
 
 use crate::{naive_solver::evaluate_naive, Solution};
 
@@ -105,14 +105,14 @@ where
     let b_component_x = x - x_a * a_candidates;
 
     // Probe what a matching value for B might be for our current A.
-    let b_x = b_component_x / x_b;
+    let b_x = (b_component_x / x_b).floor();
 
     // If not evenly divisible to yield a B, there is no solution with this A.
     let is_evenly_divisible_x = (b_x * x_b).simd_eq(b_component_x);
 
     // Do the same for Y.
     let b_component_y = y - y_a * a_candidates;
-    let b_y = b_component_y / y_b;
+    let b_y = (b_component_y / y_b).floor();
     let is_evenly_divisible_y = (b_y * y_b).simd_eq(b_component_y);
 
     // Both the X and Y equations must yield the same value for B.
